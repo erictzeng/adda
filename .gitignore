@@ -94,5 +94,5 @@ ENV/
 .ropeproject
 
 # Project specific
-data
-snapshot
+/data
+/snapshot
