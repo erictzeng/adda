@@ -26,10 +26,13 @@ class USPS(DatasetGroup):
         'test': 'zip.test.gz'
         }
 
-    def __init__(self, path=None, download=True):
+    num_classes = 10
+
+    def __init__(self, path=None, shuffle=True, download=True):
         DatasetGroup.__init__(self, 'usps', path=path, download=download)
         self.image_shape = (16, 16, 1)
         self.label_shape = ()
+        self.shuffle = shuffle
         self._load_datasets()
 
     def download(self):
@@ -46,10 +49,12 @@ class USPS(DatasetGroup):
         test_images, test_labels = self._read_datafile(abspaths['test'])
         self.train = ImageDataset(train_images, train_labels,
                                   image_shape=self.image_shape,
-                                  label_shape=self.label_shape)
+                                  label_shape=self.label_shape,
+                                  shuffle=self.shuffle)
         self.test = ImageDataset(test_images, test_labels,
                                   image_shape=self.image_shape,
-                                  label_shape=self.label_shape)
+                                  label_shape=self.label_shape,
+                                  shuffle=self.shuffle)
 
     def _read_datafile(self, path):
         """Read the proprietary USPS digits data file."""
@@ -59,7 +64,8 @@ class USPS(DatasetGroup):
                 vals = line.strip().split()
                 labels.append(float(vals[0]))
                 images.append([float(val) for val in vals[1:]])
-        labels = np.array(labels, dtype=np.float32)
+        labels = np.array(labels, dtype=np.int32)
+        labels[labels == 10] = 0  # fix weird 0 labels
         images = np.array(images, dtype=np.float32).reshape(-1, 16, 16, 1)
-        images = (images + 1) / 2
+        images = (images + 1) / 2 * 255
         return images, labels

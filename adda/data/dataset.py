@@ -56,12 +56,12 @@ class ImageDataset(object):
 
     def tf_ops(self, capacity=32):
         im = tf.placeholder(tf.float32, shape=self.image_shape)
-        label = tf.placeholder(tf.float32, shape=self.label_shape)
+        label = tf.placeholder(tf.int32, shape=self.label_shape)
         if self.image_shape is None or self.label_shape is None:
             shapes = None
         else:
             shapes = [self.image_shape, self.label_shape]
-        queue = tf.FIFOQueue(capacity, [tf.float32, tf.float32], shapes=shapes)
+        queue = tf.FIFOQueue(capacity, [tf.float32, tf.int32], shapes=shapes)
         enqueue_op = queue.enqueue([im, label])
         fqr = FeedingQueueRunner(queue, [enqueue_op],
                                  feed_fns=[self.feed(im, label).__next__])

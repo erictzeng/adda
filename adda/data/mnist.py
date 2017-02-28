@@ -30,10 +30,13 @@ class MNIST(DatasetGroup):
             'test_labels': 't10k-labels-idx1-ubyte.gz',
             }
 
-    def __init__(self, path=None):
+    num_classes = 10
+
+    def __init__(self, path=None, shuffle=True):
         DatasetGroup.__init__(self, 'mnist', path)
         self.image_shape = (28, 28, 1)
         self.label_shape = ()
+        self.shuffle = shuffle
         self._load_datasets()
 
     def _load_datasets(self):
@@ -45,10 +48,12 @@ class MNIST(DatasetGroup):
         test_labels = self._read_labels(abspaths['test_labels'])
         self.train = ImageDataset(train_images, train_labels,
                                   image_shape=self.image_shape,
-                                  label_shape=self.label_shape)
+                                  label_shape=self.label_shape,
+                                  shuffle=self.shuffle)
         self.test = ImageDataset(test_images, test_labels,
-                                  image_shape=self.image_shape,
-                                  label_shape=self.label_shape)
+                                 image_shape=self.image_shape,
+                                 label_shape=self.label_shape,
+                                 shuffle=self.shuffle)
 
     def _read_datafile(self, path, expected_dims):
         """Helper function to read a file in IDX format."""
@@ -71,8 +76,7 @@ class MNIST(DatasetGroup):
         """Read an MNIST image file."""
         return (self._read_datafile(path, 3)
                 .astype(np.float32)
-                .reshape(-1, 28, 28, 1)
-                / 255)
+                .reshape(-1, 28, 28, 1))
 
     def _read_labels(self, path):
         """Read an MNIST label file."""
