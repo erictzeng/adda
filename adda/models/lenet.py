@@ -33,6 +33,6 @@ def lenet(inputs, scope='lenet', is_training=True, reuse=False):
             net = slim.fully_connected(net, 10, activation_fn=None)
             layers['fc4'] = net
     return net, layers
-lenet.default_image_size = 32
+lenet.default_image_size = 28
 lenet.mean = None
 lenet.bgr = False
