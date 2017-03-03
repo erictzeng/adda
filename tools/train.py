@@ -1,5 +1,7 @@
 import logging
 import os
+import random
+import sys
 from collections import deque
 from collections import OrderedDict
 
@@ -20,20 +22,30 @@ import adda
 @click.option('--gpu', default='0')
 @click.option('--iterations', default=20000)
 @click.option('--batch_size', default=50)
+@click.option('--display', default=10)
 @click.option('--lr', default=1e-4)
 @click.option('--stepsize', type=int)
 @click.option('--snapshot', default=5000)
 @click.option('--weights')
 @click.option('--weights_end')
 @click.option('--ignore_label', type=int)
-def main(dataset, split, model, output, gpu, iterations, batch_size, lr,
-         stepsize, snapshot, weights, weights_end, ignore_label):
+@click.option('--solver', default='sgd')
+@click.option('--seed', type=int)
+def main(dataset, split, model, output, gpu, iterations, batch_size, display,
+         lr, stepsize, snapshot, weights, weights_end, ignore_label, solver,
+         seed):
     adda.util.config_logging()
     if 'CUDA_VISIBLE_DEVICES' in os.environ:
         logging.info('CUDA_VISIBLE_DEVICES specified, ignoring --gpu flag')
     else:
         os.environ['CUDA_VISIBLE_DEVICES'] = gpu
     logging.info('Using GPU {}'.format(os.environ['CUDA_VISIBLE_DEVICES']))
+    if seed is None:
+        seed = random.randrange(2 ** 32 - 2)
+    logging.info('Using random seed {}'.format(seed))
+    random.seed(seed)
+    np.random.seed(seed + 1)
+    tf.set_random_seed(seed + 2)
     dataset_name = dataset
     split_name = split
     dataset = getattr(adda.data.get_dataset(dataset), split)
@@ -50,7 +62,10 @@ def main(dataset, split, model, output, gpu, iterations, batch_size, lr,
     loss = tf.losses.get_total_loss()
 
     lr_var = tf.Variable(lr, name='learning_rate', trainable=False)
-    optimizer = tf.train.MomentumOptimizer(lr_var, 0.99)
+    if solver == 'sgd':
+        optimizer = tf.train.MomentumOptimizer(lr_var, 0.99)
+    else:
+        optimizer = tf.train.AdamOptimizer(lr_var)
     step = optimizer.minimize(loss)
 
     config = tf.ConfigProto(device_count=dict(GPU=1))
@@ -79,10 +94,11 @@ def main(dataset, split, model, output, gpu, iterations, batch_size, lr,
     for i in bar:
         loss_val, _ = sess.run([loss, step])
         losses.append(loss_val)
-        logging.info('{:20} {:10.4f}     (avg: {:10.4f})'
-                     .format('Iteration {}:'.format(i),
-                             loss_val,
-                             np.mean(losses)))
+        if i % display == 0:
+            logging.info('{:20} {:10.4f}     (avg: {:10.4f})'
+                        .format('Iteration {}:'.format(i),
+                                loss_val,
+                                np.mean(losses)))
         if stepsize is not None and (i + 1) % stepsize == 0:
             lr = sess.run(lr_var.assign(lr * 0.1))
             logging.info('Changed learning rate to {:.0e}'.format(lr))
