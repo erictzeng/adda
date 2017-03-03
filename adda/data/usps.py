@@ -69,3 +69,35 @@ class USPS(DatasetGroup):
         images = np.array(images, dtype=np.float32).reshape(-1, 16, 16, 1)
         images = (images + 1) / 2 * 255
         return images, labels
+
+
+@register_dataset('usps1800')
+class USPS1800(USPS):
+
+    name = 'usps1800'
+
+    def __init__(self, seed=None, path=None, shuffle=True):
+        if seed is None:
+            self.seed = hash(self.name) & 0xffffffff
+        else:
+            self.seed = seed
+        USPS.__init__(self, path=path, shuffle=shuffle)
+
+    def _load_datasets(self):
+        abspaths = {name: self.get_path(path)
+                    for name, path in self.data_files.items()}
+        rand = np.random.RandomState(self.seed)
+        train_images, train_labels = self._read_datafile(abspaths['train'])
+        inds = rand.permutation(len(train_images))[:1800]
+        inds.sort()
+        train_images = train_images[inds]
+        train_labels = train_labels[inds]
+        test_images, test_labels = self._read_datafile(abspaths['test'])
+        self.train = ImageDataset(train_images, train_labels,
+                                  image_shape=self.image_shape,
+                                  label_shape=self.label_shape,
+                                  shuffle=self.shuffle)
+        self.test = ImageDataset(test_images, test_labels,
+                                  image_shape=self.image_shape,
+                                  label_shape=self.label_shape,
+                                  shuffle=self.shuffle)
