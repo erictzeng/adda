@@ -33,9 +33,13 @@ def upscale(inputs, scale_factor, name=None):
     return out
 
 def crop(inputs, size, offset, name=None):
-    shape = tf.shape(size)[1:3]
-    h, w = shape[0], shape[1]
-    return tf.slice(inputs, [0, offset, offset, 0], [-1, h, w, -1], name=name)
+    size_shape = tf.shape(size)[1:3]
+    h, w = size_shape[0], size_shape[1]
+    in_shape = inputs.get_shape()
+    b, c = in_shape[0], in_shape[3]
+    result = tf.slice(inputs, [0, offset, offset, 0], [-1, h, w, -1], name=name)
+    result.set_shape([b, None, None, c])
+    return result
 
 
 @register_model_fn('vgg_16_fcn8s')
