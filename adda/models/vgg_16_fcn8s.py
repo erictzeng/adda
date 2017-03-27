@@ -125,7 +125,7 @@ def vgg_16_fcn8s(inputs,
             end_points_collection)
         return net, end_points
 vgg_16_fcn8s.default_image_size = None  # fully convolutional
-#vgg_16_fcn8s.mean = np.array([72.78044, 83.21195, 73.45286], dtype=np.float32)
+vgg_16_fcn8s.num_channels = 3
 vgg_16_fcn8s.mean = np.array([123.68, 116.779, 103.939], dtype=np.float32)
 vgg_16_fcn8s.bgr = False
 

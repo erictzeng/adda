@@ -39,5 +39,7 @@ def svhnnet(inputs, scope='svhnnet', is_training=True, reuse=False):
             layers['fc6'] = net
     return net, layers
 svhnnet.default_image_size = 32
+svhnnet.num_channels = 1
+svhnnet.range = 255
 svhnnet.mean = np.array([123.68, 116.779, 103.939], dtype=np.float32)
 svhnnet.bgr = False

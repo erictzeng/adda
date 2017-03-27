@@ -34,5 +34,6 @@ def lenet(inputs, scope='lenet', is_training=True, reuse=False):
             layers['fc4'] = net
     return net, layers
 lenet.default_image_size = 28
+lenet.num_channels = 1
 lenet.mean = None
 lenet.bgr = False
