@@ -36,6 +36,9 @@ class USPS(DatasetGroup):
         self._load_datasets()
 
     def download(self):
+        data_dir = self.get_path()
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
         for filename in self.data_files.values():
             path = self.get_path(filename)
             if not os.path.exists(path):
@@ -67,7 +70,7 @@ class USPS(DatasetGroup):
         labels = np.array(labels, dtype=np.int32)
         labels[labels == 10] = 0  # fix weird 0 labels
         images = np.array(images, dtype=np.float32).reshape(-1, 16, 16, 1)
-        images = (images + 1) / 2 * 255
+        images = (images + 1) / 2
         return images, labels
 
 

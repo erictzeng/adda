@@ -42,6 +42,9 @@ class MNIST(DatasetGroup):
         self._load_datasets()
 
     def download(self):
+        data_dir = self.get_path()
+        if not os.path.exists(data_dir):
+            os.mkdir(data_dir)
         for filename in self.data_files.values():
             path = self.get_path(filename)
             if not os.path.exists(path):
@@ -85,7 +88,8 @@ class MNIST(DatasetGroup):
         """Read an MNIST image file."""
         return (self._read_datafile(path, 3)
                 .astype(np.float32)
-                .reshape(-1, 28, 28, 1))
+                .reshape(-1, 28, 28, 1)
+                / 255)
 
     def _read_labels(self, path):
         """Read an MNIST label file."""
