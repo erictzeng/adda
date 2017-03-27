@@ -20,24 +20,23 @@ def svhnnet(inputs, scope='svhnnet', is_training=True, reuse=False):
                     activation_fn=tf.nn.relu,
                     weights_regularizer=slim.l2_regularizer(2.5e-5)))
             stack.enter_context(
-                    slim.arg_scope([slim.max_pool2d, slim.conv2d], padding='SAME'))
-            net = slim.conv2d(net, 64, 5)
-            net = slim.max_pool2d(net, 3, stride=2)
+                slim.arg_scope([slim.max_pool2d, slim.conv2d],
+                               padding='SAME'))
+            net = slim.conv2d(net, 64, 5, scope='conv1')
+            net = slim.max_pool2d(net, 3, stride=2, scope='pool1')
             layers['pool1'] = net
-            net = slim.conv2d(net, 64, 5)
-            net = slim.max_pool2d(net, 3, stride=2)
+            net = slim.conv2d(net, 64, 5, scope='conv2')
+            net = slim.max_pool2d(net, 3, stride=2, scope='pool2')
             layers['pool2'] = net
-            net = slim.conv2d(net, 128, 5)
+            net = slim.conv2d(net, 128, 5, scope='conv3')
             layers['conv3'] = net
             net = tf.contrib.layers.flatten(net)
-            net = slim.fully_connected(net, 3072)
+            net = slim.fully_connected(net, 3072, scope='fc4')
             layers['fc4'] = net
-            net = slim.fully_connected(net, 2048)
+            net = slim.fully_connected(net, 2048, scope='fc5')
             layers['fc5'] = net
-            net = slim.fully_connected(net, 10, activation_fn=None)
+            net = slim.fully_connected(net, 10, activation_fn=None, scope='fc6')
             layers['fc6'] = net
-    if not reuse:
-        reuse = True
     return net, layers
 svhnnet.default_image_size = 32
 svhnnet.mean = np.array([123.68, 116.779, 103.939], dtype=np.float32)
