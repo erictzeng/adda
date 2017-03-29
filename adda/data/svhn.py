@@ -60,11 +60,13 @@ class SVHN(DatasetGroup):
                                       extra_mat['X'].transpose((3, 0, 1, 2))))
             train_labels = np.concatenate((train_labels,
                                            extra_mat['y'].squeeze()))
+        train_labels[train_labels == 10] = 0
         train_images = train_images.astype(np.float32) / 255
         test_mat = loadmat(abspaths['test'])
         test_images = test_mat['X'].transpose((3, 0, 1, 2))
         test_images = test_images.astype(np.float32) / 255
         test_labels = test_mat['y'].squeeze()
+        test_labels[test_labels == 10] = 0
         self.train = ImageDataset(train_images, train_labels,
                                   image_shape=self.image_shape,
                                   label_shape=self.label_shape,
