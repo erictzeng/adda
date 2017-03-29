@@ -27,10 +27,14 @@ import adda
 @click.option('--snapshot', default=5000)
 @click.option('--weights', required=True)
 @click.option('--solver', default='sgd')
+@click.option('--adversary', 'adversary_layers', default=[500, 500],
+              multiple=True)
+@click.option('--adversary_leaky/--adversary_relu', default=True)
 @click.option('--seed', type=int)
 def main(source, target, model, output,
          gpu, iterations, batch_size, display, lr, stepsize, snapshot, weights,
-         solver, seed):
+         solver, adversary_layers, adversary_leaky, seed):
+    # miscellaneous setup
     adda.util.config_logging()
     if 'CUDA_VISIBLE_DEVICES' in os.environ:
         logging.info('CUDA_VISIBLE_DEVICES specified, ignoring --gpu flag')
@@ -58,6 +62,10 @@ def main(source, target, model, output,
         logging.error(
             'Unexpected target dataset {} (should be in format dataset:split)'
             .format(target))
+    if error:
+        raise click.Abort
+
+    # setup data
     logging.info('Adapting {} -> {}'.format(source, target))
     source_dataset = getattr(adda.data.get_dataset(source_dataset_name),
                              source_split_name)
@@ -72,26 +80,34 @@ def main(source, target, model, output,
         [source_im, source_label], batch_size=batch_size)
     target_im_batch, target_label_batch = tf.train.batch(
         [target_im, target_label], batch_size=batch_size)
+
+    # base network
     source_ft, _ = model_fn(source_im_batch, scope='source')
-    source_ft = tf.reshape(source_ft, [-1, int(source_ft.get_shape()[-1])])
-    source_adversary_label = tf.zeros([tf.shape(source_ft)[0]], tf.int32)
     target_ft, _ = model_fn(target_im_batch, scope='target')
+
+    # adversarial network
+    source_ft = tf.reshape(source_ft, [-1, int(source_ft.get_shape()[-1])])
     target_ft = tf.reshape(target_ft, [-1, int(target_ft.get_shape()[-1])])
-    target_adversary_label = tf.ones([tf.shape(target_ft)[0]], tf.int32)
     adversary_ft = tf.concat([source_ft, target_ft], 0)
+    source_adversary_label = tf.zeros([tf.shape(source_ft)[0]], tf.int32)
+    target_adversary_label = tf.ones([tf.shape(target_ft)[0]], tf.int32)
     adversary_label = tf.concat(
         [source_adversary_label, target_adversary_label], 0)
     adversary_logits = adda.adversary.adversarial_discriminator(
-        adversary_ft, [500, 500])
+        adversary_ft, adversary_layers, leaky=adversary_leaky)
+
+    # losses
     mapping_loss = tf.losses.sparse_softmax_cross_entropy(
         1 - adversary_label, adversary_logits)
     adversary_loss = tf.losses.sparse_softmax_cross_entropy(
         adversary_label, adversary_logits)
 
+    # variable collection
     source_vars = adda.util.collect_vars('source')
     target_vars = adda.util.collect_vars('target')
     adversary_vars = adda.util.collect_vars('adversary')
 
+    # optimizer
     lr_var = tf.Variable(lr, name='learning_rate', trainable=False)
     if solver == 'sgd':
         optimizer = tf.train.MomentumOptimizer(lr_var, 0.99)
@@ -102,10 +118,7 @@ def main(source, target, model, output,
     adversary_step = optimizer.minimize(
         adversary_loss, var_list=list(adversary_vars.values()))
 
-
-    if error:
-        raise click.Abort
-
+    # set up session and initialize
     config = tf.ConfigProto(device_count=dict(GPU=1))
     config.gpu_options.allow_growth = True
     sess = tf.Session(config=config)
@@ -113,6 +126,7 @@ def main(source, target, model, output,
     threads = tf.train.start_queue_runners(sess=sess, coord=coord)
     sess.run(tf.global_variables_initializer())
 
+    # restore weights
     if os.path.isdir(weights):
         weights = tf.train.latest_checkpoint(weights)
     logging.info('Restoring weights from {}:'.format(weights))
@@ -127,6 +141,7 @@ def main(source, target, model, output,
     target_restorer = tf.train.Saver(var_list=target_vars)
     target_restorer.restore(sess, weights)
 
+    # optimization loop (finally)
     output_dir = os.path.join('snapshot', output)
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
