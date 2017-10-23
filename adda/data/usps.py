@@ -14,7 +14,7 @@ from adda.data.dataset import register_dataset
 class USPS(DatasetGroup):
     """USPS handwritten digits.
 
-    Homepage: http://statweb.stanford.edu/~tibs/ElemStatLearn/data.html
+    Homepage: http://statweb.stanford.edu/~hastie/ElemStatLearn/data.html
 
     Images are 16x16 grayscale images in the range [0, 1].
     """
